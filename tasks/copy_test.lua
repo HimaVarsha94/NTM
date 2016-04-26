@@ -2,12 +2,14 @@ require('../')
 require('./util')
 require('optim')
 require('sys')
+require 'gnuplot'
+
 
 obj = torch.load('copy.pkl')
 local input_dim = obj.input_dim
 local len = 8
-local min_len = 1
-local max_len = 20
+local min_len = 20
+local max_len = 120
 local start_symbol = torch.zeros(input_dim)
 start_symbol[1] = 1
 local end_symbol = torch.zeros(input_dim)
@@ -29,10 +31,8 @@ function forward(model, seq, print_flag)
   model:forward(start_symbol)
 
   -- present inputs
-  if print_flag then print('write head max') end
   for j = 1, len do
     model:forward(seq[j])
-    if print_flag then print_write_max(model) end
   end
 
   -- present end symbol
@@ -42,17 +42,25 @@ function forward(model, seq, print_flag)
   local zeros = torch.zeros(input_dim)
   local outputs = torch.Tensor(len, input_dim)
   local criteria = {}
-  if print_flag then print('read head max') end
   for j = 1, len do
     criteria[j] = nn.BCECriterion()
     outputs[j] = model:forward(zeros)
     loss = loss + criteria[j]:forward(outputs[j], seq[j]) * input_dim
-    if print_flag then print_read_max(model) end
   end
   return outputs, criteria, loss
 end
 
-local seq = generate_sequence(len, (input_dim) - 2)
-output, criteria, loss = forward(obj, seq,1)
-print(loss)
-print(output)
+local inputs = {}
+local losses = {}
+local outputs = {}
+local targets = {}
+
+for i = 1, 100 do
+    local seq = generate_sequence(len, (input_dim) - 2)
+    inputs[i] = seq
+    targets[i] = seq
+    outputs[i], criteria, losses[i] = forward(obj, seq,0)
+    print(losses[i])
+end
+
+gnuplot.plot({torch.range(1,#losses),torch.Tensor(losses),'-'})

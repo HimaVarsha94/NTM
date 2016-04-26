@@ -91,7 +91,7 @@ end
 local model = ntm.NTM(config)
 local params, grads = model:getParameters()
 
-local num_iters = 100
+local num_iters = 10
 local start = sys.clock()
 local print_interval = 25
 local min_len = 1

@@ -218,59 +218,23 @@ function NTM:new_controller_module(input, r_p, mtable_p, ctable_p)
     end
 
     -- input, forget, and output gates
-    -- local i = nn.Sigmoid()(new_gate())
-    -- local f = nn.Sigmoid()(new_gate())
-    -- local o = nn.Sigmoid()(new_gate())
-    -- local update = nn.Tanh()(new_gate())
-
-    local z = nn.Sigmoid()(new_gate())
-    local r = nn.Sigmoid()(new_gate())
+    local i = nn.Sigmoid()(new_gate())
+    local f = nn.Sigmoid()(new_gate())
+    local o = nn.Sigmoid()(new_gate())
+    local update = nn.Tanh()(new_gate())
 
     -- update the state of the LSTM cell
-    -- ctable[layer] = nn.CAddTable(){
-    --   nn.CMulTable(){f, c_p},
-    --   nn.CMulTable(){i, update}
-    -- }
-    local new_hidden_gate
-    local gated_hidden = nn.CMulTable(){mtable_p, r}
-    if layer == 1 then
-      new_hidden_gate = function()
-        local in_modules = {
-          nn.Linear(self.input_dim, self.cont_dim)(input),
-          nn.Linear(self.cont_dim, self.cont_dim)(gated_hidden)
-        }
-        if self.read_heads == 1 then
-          table.insert(in_modules, nn.Linear(self.mem_cols, self.cont_dim)(r_p))
-        else
-          for i = 1, self.read_heads do
-            local vec = nn.SelectTable(i)(r_p)
-            table.insert(in_modules, nn.Linear(self.mem_cols, self.cont_dim)(vec))
-          end
-        end
-        return nn.CAddTable()(in_modules)
-      end
-    else
-      new_hidden_gate = function()
-        return nn.CAddTable(){
-          nn.Linear(self.cont_dim, self.cont_dim)(mtable[layer - 1]),
-          nn.Linear(self.cont_dim, self.cont_dim)(gated_hidden)
-        }
-      end
-    end
-
-    ctable[layer] = nn.Tanh()(new_hidden_gate())
-    mtable[layer] = nn.CAddTable() {
-        nn.CMulTable() {nn.AddConstant(1,false)(nn.MulConstant(-1,false)(z)), ctable[layer]},
-        nn.CMulTable() {z, mtable_p}
+    ctable[layer] = nn.CAddTable(){
+      nn.CMulTable(){f, c_p},
+      nn.CMulTable(){i, update}
     }
+
+    mtable[layer] = nn.CMulTable(){o, nn.Tanh()(ctable[layer])}
   end
-  print("here")
 
   mtable = nn.Identity()(mtable)
   ctable = nn.Identity()(ctable)
-  print("JHDJWHVCIFHWRJFK")
   return mtable, ctable
-  
 end
 
 -- Create a new module to read/write to memory
