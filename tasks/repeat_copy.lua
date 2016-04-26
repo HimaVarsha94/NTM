@@ -24,11 +24,29 @@ local config = {
   cont_dim = 100
 }
 
+
 local input_dim = config.input_dim
 local start_symbol = torch.zeros(input_dim)
 start_symbol[1] = 1
 local end_symbol = torch.zeros(input_dim)
-end_symbol[2] = 1
+
+function generate_repeat_number(min, max)
+    local k = (torch.rand(1)*max):ceil()
+    return k[1]
+end
+
+function make_target(seq,k)
+    local rows = seq:size()[1]
+    local columns = seq:size()[2]
+    local target = torch.zeros((k*rows)+1, columns)
+    for i=1, rows*k,rows do
+        target[{{i,i+rows-1},{}}] = seq
+    end
+    local end_limiter = torch.zeros(columns)
+    end_limiter[2] = 1
+    target[(k*rows)+1] = end_limiter
+    return  target
+end
 
 function generate_sequence(len, bits)
   local seq = torch.zeros(len, bits + 2)
@@ -38,7 +56,7 @@ function generate_sequence(len, bits)
   return seq
 end
 
-function forward(model, seq, print_flag)
+function forward(model, seq, print_flag,k, targets)
   local len = seq:size(1)
   local loss = 0
 
@@ -57,26 +75,28 @@ function forward(model, seq, print_flag)
 
   -- present targets
   local zeros = torch.zeros(input_dim)
-  local outputs = torch.Tensor(len, input_dim)
+
+  local outputs = torch.Tensor((k*len)+1, input_dim)
   local criteria = {}
   if print_flag then print('read head max') end
-  for j = 1, len do
+
+  for j = 1, k*len + 1 do
     criteria[j] = nn.BCECriterion()
     outputs[j] = model:forward(zeros)
-    loss = loss + criteria[j]:forward(outputs[j], seq[j]) * input_dim
+    loss = loss + criteria[j]:forward(outputs[j], targets[j]) * input_dim
     if print_flag then print_read_max(model) end
   end
   return outputs, criteria, loss
 end
 
-function backward(model, seq, outputs, criteria)
+function backward(model, seq, outputs, criteria, k, targets)
   local len = seq:size(1)
   local zeros = torch.zeros(input_dim)
-  for j = len, 1, -1 do
+  for j = k*len+1, 1, -1 do
     model:backward(
       zeros,
       criteria[j]
-        :backward(outputs[j], seq[j])
+        :backward(outputs[j], targets[j])
         :mul(input_dim)
       )
   end
@@ -91,9 +111,9 @@ end
 local model = ntm.NTM(config)
 local params, grads = model:getParameters()
 
-local num_iters = 100
+local num_iters = 10000
 local start = sys.clock()
-local print_interval = 25
+local print_interval = 50
 local min_len = 1
 local max_len = 20
 
@@ -133,9 +153,13 @@ for iter = 1, num_iters do
 
     local len = math.floor(torch.random(min_len, max_len))
     local seq = generate_sequence(len, input_dim - 2)
-    local outputs, criteria, sample_loss = forward(model, seq, print_flag)
+    local k = generate_repeat_number(1,10)
+    end_symbol[2] = k
+    local targets = make_target(seq,k)
+
+    local outputs, criteria, sample_loss = forward(model, seq, print_flag,k, targets)
     loss = loss + sample_loss
-    backward(model, seq, outputs, criteria)
+    backward(model, seq, outputs, criteria,k, targets)
     if print_flag then
       print("target:")
       print(seq)
@@ -157,4 +181,4 @@ for iter = 1, num_iters do
   ntm.rmsprop(feval, params, rmsprop_state)
 end
 
-torch.save("copy.pkl", model);
+torch.save("repeat_copy.pkl", model);
