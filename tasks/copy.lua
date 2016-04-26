@@ -91,7 +91,7 @@ end
 local model = ntm.NTM(config)
 local params, grads = model:getParameters()
 
-local num_iters = 10000
+local num_iters = 10
 local start = sys.clock()
 local print_interval = 25
 local min_len = 1
@@ -156,3 +156,5 @@ for iter = 1, num_iters do
   --optim.adagrad(feval, params, adagrad_state)
   ntm.rmsprop(feval, params, rmsprop_state)
 end
+
+torch.save("copy.pkl", model);
