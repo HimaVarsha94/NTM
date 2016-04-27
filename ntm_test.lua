@@ -66,15 +66,13 @@ function NTM:init_grad_inputs()
     end
   end
 
-  local m_gradInput, c_gradInput
+  local m_gradInput
   if self.cont_layers == 1 then
     m_gradInput = torch.zeros(self.cont_dim)
-    c_gradInput = torch.zeros(self.cont_dim)
   else
-    m_gradInput, c_gradInput = {}, {}
+    m_gradInput= {}
     for i = 1, self.cont_layers do
       m_gradInput[i] = torch.zeros(self.cont_dim)
-      c_gradInput[i] = torch.zeros(self.cont_dim)
     end
   end
 
@@ -84,8 +82,7 @@ function NTM:init_grad_inputs()
     wr_gradInput,
     ww_gradInput,
     r_gradInput,
-    m_gradInput,
-    c_gradInput
+    m_gradInput
   }
 end
 
@@ -124,10 +121,9 @@ function NTM:new_init_module()
   end
 
   -- controller state
-  local m_init, c_init = {}, {}
+  local m_init= {}
   for i = 1, self.cont_layers do
     m_init[i] = nn.Tanh()(nn.Linear(1, self.cont_dim)(dummy))
-    c_init[i] = nn.Tanh()(nn.Linear(1, self.cont_dim)(dummy))
   end
 
   -- wrap tables as nngraph nodes
@@ -135,10 +131,9 @@ function NTM:new_init_module()
   wr_init = nn.Identity()(wr_init)
   r_init = nn.Identity()(r_init)
   m_init = nn.Identity()(m_init)
-  c_init = nn.Identity()(c_init)
 
   local inits = {
-    output_init, M_init, wr_init, ww_init, r_init, m_init, c_init
+    output_init, M_init, wr_init, ww_init, r_init, m_init
   }
   return nn.gModule({dummy}, inits)
 end
@@ -159,17 +154,16 @@ function NTM:new_cell()
 
   -- LSTM controller output
   local mtable_p = nn.Identity()()
-  local ctable_p = nn.Identity()()
 
   -- output and hidden states of the controller module
-  local mtable, ctable = self:new_controller_module(input, r_p, mtable_p, ctable_p)
+  local mtable = self:new_controller_module(input, r_p, mtable_p)
   local m = (self.cont_layers == 1) and mtable
     or nn.SelectTable(self.cont_layers)(mtable)
   local M, wr, ww, r = self:new_mem_module(M_p, wr_p, ww_p, m)
   local output = self:new_output_module(m)
 
-  local inputs = {input, M_p, wr_p, ww_p, r_p, mtable_p, ctable_p}
-  local outputs = {output, M, wr, ww, r, mtable, ctable}
+  local inputs = {input, M_p, wr_p, ww_p, r_p, mtable_p}
+  local outputs = {output, M, wr, ww, r, mtable}
 
   local cell = nn.gModule(inputs, outputs)
   if self.master_cell ~= nil then
@@ -179,17 +173,15 @@ function NTM:new_cell()
 end
 
 -- Create a new LSTM controller
-function NTM:new_controller_module(input, r_p, mtable_p, ctable_p)
+function NTM:new_controller_module(input, r_p, mtable_p)
   -- multilayer LSTM
-  local mtable, ctable = {}, {}
+  local mtable = {}
   for layer = 1, self.cont_layers do
-    local new_gate, m_p, c_p
+    local new_gate, m_p
     if self.cont_layers == 1 then
       m_p = mtable_p
-      c_p = ctable_p
     else
       m_p = nn.SelectTable(layer)(mtable_p)
-      c_p = nn.SelectTable(layer)(ctable_p)
     end
 
     if layer == 1 then
@@ -218,23 +210,40 @@ function NTM:new_controller_module(input, r_p, mtable_p, ctable_p)
     end
 
     -- input, forget, and output gates
-    local i = nn.Sigmoid()(new_gate())
-    local f = nn.Sigmoid()(new_gate())
-    local o = nn.Sigmoid()(new_gate())
-    local update = nn.Tanh()(new_gate())
+    local z = nn.Sigmoid()(new_gate())
+    local r = nn.Sigmoid()(new_gate())
 
-    -- update the state of the LSTM cell
-    ctable[layer] = nn.CAddTable(){
-      nn.CMulTable(){f, c_p},
-      nn.CMulTable(){i, update}
+    local hidden_gate
+    local update = nn.CMulTable(){m_p, r}
+    if layer==1 then
+        local in_modules = {
+          nn.Linear(self.input_dim, self.cont_dim)(input),
+          nn.Linear(self.cont_dim, self.cont_dim)(update)
+        }
+        if self.read_heads == 1 then
+          table.insert(in_modules, nn.Linear(self.mem_cols, self.cont_dim)(r_p))
+        else
+          for i = 1, self.read_heads do
+            local vec = nn.SelectTable(i)(r_p)
+            table.insert(in_modules, nn.Linear(self.mem_cols, self.cont_dim)(vec))
+          end
+        end
+        hidden_gate = nn.Tanh()(nn.CAddTable()(in_modules))
+    else
+        hidden_gate = nn.Tanh()(nn.CAddTable(){
+            nn.Linear(self.cont_dim, self.cont_dim)(mtable[layer-1]),
+            nn.Linear(self.cont_dim, self.cont_dim)(update)
+        })
+    end
+
+    mtable[layer] = nn.CAddTable() {
+        nn.CMulTable(){hidden_gate,z},
+        nn.CMulTable() { nn.AddConstant(1,false)(nn.MulConstant(-1,false)(z)), hidden_gate }
     }
-
-    mtable[layer] = nn.CMulTable(){o, nn.Tanh()(ctable[layer])}
   end
 
   mtable = nn.Identity()(mtable)
-  ctable = nn.Identity()(ctable)
-  return mtable, ctable
+  return mtable
 end
 
 -- Create a new module to read/write to memory
