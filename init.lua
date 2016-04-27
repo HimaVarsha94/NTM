@@ -13,7 +13,7 @@ include('layers/Print.lua')
 include('layers/SmoothCosineSimilarity.lua')
 include('layers/ScalarMulTable.lua')
 include('layers/ScalarDivTable.lua')
-include('ntm_test.lua')
+include('NTM_gru.lua')
 
 function share_params(cell, src, ...)
   for i = 1, #cell.forwardnodes do
