@@ -111,11 +111,11 @@ end
 local model = ntm.NTM(config)
 local params, grads = model:getParameters()
 
-local num_iters = 10
+local num_iters = 5000
 local start = sys.clock()
 local print_interval = 50
 local min_len = 1
-local max_len = 20
+local max_len = 10
 
 print(string.rep('=', 80))
 print("NTM copy task")

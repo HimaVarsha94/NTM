@@ -8,7 +8,7 @@ obj = torch.load('repeat_copy.pkl','ascii')
 
 local min_len = 1
 local max_len = 20
-local num_iters = 10
+local num_iters = 100
 -- print(input_dim)
 local input_dim = obj.input_dim
 
