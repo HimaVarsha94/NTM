@@ -43,6 +43,7 @@ function forward(model, seq, print_flag)
   local loss = 0
 
   -- present start symbol
+  print(start_symbol:type())
   model:forward(start_symbol)
 
   -- present inputs

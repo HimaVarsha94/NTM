@@ -1,7 +1,8 @@
 require('torch')
 require('nn')
 require('nngraph')
-
+-- require('cunn')
+-- require('cutorch')
 ntm = {}
 printf = utils.printf
 

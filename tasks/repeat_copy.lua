@@ -27,9 +27,13 @@ local config = {
 
 local input_dim = config.input_dim
 local start_symbol = torch.zeros(input_dim)
+-- test = test.cuda()
+-- test = test:cuda()
+-- start_symbol = test
+print("done")
 start_symbol[1] = 1
 local end_symbol = torch.zeros(input_dim)
-
+end_symbol = end_symbol:cuda()
 function generate_repeat_number(min, max)
     local k = (torch.rand(1)*max):ceil()
     return k[1]
@@ -61,13 +65,16 @@ function forward(model, seq, print_flag,k, targets)
   local loss = 0
 
   -- present start symbol
-  model:forward(start_symbol)
+  print("STart ka type")
+  print(start_symbol:type())
+  model:forward(start_symbol:cuda())
+  print("after")
 
   -- present inputs
-  if print_flag then print('write head max') end
+  -- if print_flag then print('write head max') end
   for j = 1, len do
     model:forward(seq[j])
-    if print_flag then print_write_max(model) end
+    -- if print_flag then print_write_max(model) end
   end
 
   -- present end symbol
@@ -78,13 +85,13 @@ function forward(model, seq, print_flag,k, targets)
 
   local outputs = torch.Tensor((k*len)+1, input_dim)
   local criteria = {}
-  if print_flag then print('read head max') end
+  --if print_flag then print('read head max') end
 
   for j = 1, k*len + 1 do
     criteria[j] = nn.BCECriterion()
     outputs[j] = model:forward(zeros)
     loss = loss + criteria[j]:forward(outputs[j], targets[j]) * input_dim
-    if print_flag then print_read_max(model) end
+    --if print_flag then print_read_max(model) end
   end
   return outputs, criteria, loss
 end
@@ -108,8 +115,10 @@ function backward(model, seq, outputs, criteria, k, targets)
   model:backward(start_symbol, zeros)
 end
 
-local model = ntm.NTM(config)
+local model = ntm.NTM(config):cuda()
 local params, grads = model:getParameters()
+params = params:cuda()
+grads = grads:cuda()
 
 local num_iters = 5000
 local start = sys.clock()
@@ -138,50 +147,52 @@ local train = torch.load('repeat_copy_trainData.dat', 'ascii')
 local input_seqs = train[1]
 local ks = train[2]
 local targets_table = train[3]
-print(#input_seqs)
-print(#ks)
-print(#targets_table)
-
+-- print(#input_seqs)
+-- print(#ks)
+-- print(#targets_table)
+--
 
 -- train
 for iter = 1, num_iters do
   local print_flag = (iter % print_interval == 0)
   local feval = function(x)
     if print_flag then
-      print(string.rep('-', 80))
+    --   print(string.rep('-', 80))
       print('iter = ' .. iter)
-      print('learn rate = ' .. rmsprop_state.learningRate)
-      print('momentum = ' .. rmsprop_state.momentum)
-      print('decay = ' .. rmsprop_state.decay)
-      printf('t = %.1fs\n', sys.clock() - start)
+    --   print('learn rate = ' .. rmsprop_state.learningRate)
+    --   print('momentum = ' .. rmsprop_state.momentum)
+    --   print('decay = ' .. rmsprop_state.decay)
+    --   printf('t = %.1fs\n', sys.clock() - start)
     end
 
     local loss = 0
     grads:zero()
     -- local len = math.floor(torch.random(min_len, max_len))
     local seq = input_seqs[iter]
+    seq = seq:cuda()
     -- print(seq)
     local k = ks[iter]
     -- print(k)
     end_symbol[2] = k
     local targets = targets_table[iter]
+    targets = targets:cuda()
     -- print(targets)
 
     local outputs, criteria, sample_loss = forward(model, seq, print_flag,k, targets)
     loss = loss + sample_loss
     backward(model, seq, outputs, criteria,k, targets)
     if print_flag then
-      print("target:")
-      print(seq)
-      print("output:")
-      print(outputs)
+    --   print("target:")
+    --   print(seq)
+    --   print("output:")
+    --   print(outputs)
     end
 
     -- clip gradients
     grads:clamp(-10, 10)
     if print_flag then
-      print('max grad = ' .. grads:max())
-      print('min grad = ' .. grads:min())
+    --   print('max grad = ' .. grads:max())
+    --   print('min grad = ' .. grads:min())
       print('loss = ' .. loss)
     end
     return loss, grads
