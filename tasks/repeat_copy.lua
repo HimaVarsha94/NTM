@@ -111,11 +111,11 @@ end
 local model = ntm.NTM(config)
 local params, grads = model:getParameters()
 
-local num_iters = 10
+local num_iters = 5000
 local start = sys.clock()
 local print_interval = 50
 local min_len = 1
-local max_len = 20
+local max_len = 10
 
 print(string.rep('=', 80))
 print("NTM copy task")
@@ -134,6 +134,14 @@ local rmsprop_state = {
 -- local adagrad_state = {
 --   learningRate = 1e-3
 -- }
+local train = torch.load('repeat_copy_trainData.dat', 'ascii')
+local input_seqs = train[1]
+local ks = train[2]
+local targets_table = train[3]
+print(#input_seqs)
+print(#ks)
+print(#targets_table)
+
 
 -- train
 for iter = 1, num_iters do
@@ -150,12 +158,14 @@ for iter = 1, num_iters do
 
     local loss = 0
     grads:zero()
-
-    local len = math.floor(torch.random(min_len, max_len))
-    local seq = generate_sequence(len, input_dim - 2)
-    local k = generate_repeat_number(1,10)
+    -- local len = math.floor(torch.random(min_len, max_len))
+    local seq = input_seqs[iter]
+    -- print(seq)
+    local k = ks[iter]
+    -- print(k)
     end_symbol[2] = k
-    local targets = make_target(seq,k)
+    local targets = targets_table[iter]
+    -- print(targets)
 
     local outputs, criteria, sample_loss = forward(model, seq, print_flag,k, targets)
     loss = loss + sample_loss
@@ -181,4 +191,4 @@ for iter = 1, num_iters do
   ntm.rmsprop(feval, params, rmsprop_state)
 end
 
-torch.save("repeat_copy.pkl", model);
+torch.save("repeat_copy.pkl", model,'ascii');

@@ -4,12 +4,12 @@ require('optim')
 require('sys')
 
 torch.manualSeed(0)
-obj = torch.load('repeat_copy.pkl')
+obj = torch.load('repeat_copy.pkl','ascii')
 
 local min_len = 1
-local max_len = 5
-local num_iters = 10
-print(input_dim)
+local max_len = 20
+local num_iters = 100
+-- print(input_dim)
 local input_dim = obj.input_dim
 
 local start_symbol = torch.zeros(input_dim)
@@ -74,21 +74,31 @@ end
 
 
 -- test
-local inputs = {}
+local test = torch.load('repeat_copy_testData.dat', 'ascii')
+local input_seqs = test[1]
+local ks = test[2]
+local targets_table = test[3]
+print(#input_seqs)
+print(#ks)
+print(#targets_table)
+
+-- local inputs = {}
 local losses = {}
+-- local targets = {}
 local outputs = {}
-local targets = {}
-local criteria
+-- local criteria
 for i = 1, num_iters do
 
-    local len = math.floor(torch.random(min_len, max_len))
-    local seq = generate_sequence(len, input_dim - 2)
-    local k = generate_repeat_number(1,10)
-    inputs[i] = seq
+    -- local len = math.floor(torch.random(min_len, max_len))
+    local seq = input_seqs[i]
+    local k = ks[i]
+    -- inputs[i] = seq
     end_symbol[2] = k
-    targets[i] = make_target(seq,k)
-    outputs[i], criteria, losses[i] = forward(obj, seq,k, targets[i])
-    print(losses[i])
+    local targets = targets_table[i]
+    outputs[i], criteria, losses[i] = forward(obj, seq,k, targets)
+
     -- return loss, grads
 
 end
+local out = {num_iters,output,losses}
+torch.save('repeat_copy_out.dat', out, 'ascii')
