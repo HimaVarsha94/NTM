@@ -91,11 +91,10 @@ end
 function NTM:new_init_module()
   local dummy = nn.Identity()() -- always zero
   local output_init = nn.Tanh()(nn.Linear(1, self.output_dim)(dummy))
-
   -- memory
   local M_init_lin = nn.Linear(1, self.mem_rows * self.mem_cols)
   local M_init = nn.View(self.mem_rows, self.mem_cols)(
-    nn.Tanh()(M_init_lin(dummy)))
+  nn.Tanh()(M_init_lin(dummy)))
 
   -- read weights
   local wr_init, r_init = {}, {}
@@ -135,7 +134,8 @@ function NTM:new_init_module()
   local inits = {
     output_init, M_init, wr_init, ww_init, r_init, m_init
   }
-  return nn.gModule({dummy}, inits)
+  -- inits = inits.cuda()
+  return nn.gModule({dummy}, inits):cuda()
 end
 
 -- Create a new NTM cell. Each cell shares the parameters of the "master" cell
@@ -154,7 +154,6 @@ function NTM:new_cell()
 
   -- LSTM controller output
   local mtable_p = nn.Identity()()
-
   -- output and hidden states of the controller module
   local mtable = self:new_controller_module(input, r_p, mtable_p)
   local m = (self.cont_layers == 1) and mtable
@@ -164,8 +163,8 @@ function NTM:new_cell()
 
   local inputs = {input, M_p, wr_p, ww_p, r_p, mtable_p}
   local outputs = {output, M, wr, ww, r, mtable}
+  local cell = nn.gModule(inputs, outputs):cuda()
 
-  local cell = nn.gModule(inputs, outputs)
   if self.master_cell ~= nil then
     share_params(cell, self.master_cell, 'weight', 'bias', 'gradWeight', 'gradBias')
   end
@@ -347,22 +346,24 @@ function NTM:forward(input)
   if cell == nil then
     cell = self:new_cell()
     self.cells[self.depth] = cell
+    self.cells[self.depth] = self.cells[self.depth]
   end
 
   local prev_outputs
   if self.depth == 1 then
-    prev_outputs = self.init_module:forward(torch.Tensor{0})
+    prev_outputs = self.init_module:forward(torch.Tensor{0}:cuda())
   else
     prev_outputs = self.cells[self.depth - 1].output
   end
+  -- prev_outputs = prev_outputs:cuda()
 
   -- get inputs
   local inputs = {input}
   for i = 2, #prev_outputs do
-    inputs[i] = prev_outputs[i]
+    inputs[i] = prev_outputs[i]:cuda()
   end
   local outputs = cell:forward(inputs)
-  self.output = outputs[1]
+  self.output = outputs[1]:cuda()
   return self.output
 end
 
@@ -375,21 +376,20 @@ function NTM:backward(input, grad_output)
   local cell = self.cells[self.depth]
   local grad_outputs = {grad_output}
   for i = 2, #self.gradInput do
-    grad_outputs[i] = self.gradInput[i]
+    grad_outputs[i] = self.gradInput[i]:cuda()
   end
 
   -- get inputs
   local prev_outputs
   if self.depth == 1 then
-    prev_outputs = self.init_module:forward(torch.Tensor{0})
+    prev_outputs = self.init_module:forward(torch.Tensor{0}:cuda())
   else
     prev_outputs = self.cells[self.depth - 1].output
   end
   local inputs = {input}
   for i = 2, #prev_outputs do
-    inputs[i] = prev_outputs[i]
+    inputs[i] = prev_outputs[i]:cuda()
   end
-
   self.gradInput = cell:backward(inputs, grad_outputs)
   self.depth = self.depth - 1
   if self.depth == 0 then

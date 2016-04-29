@@ -26,14 +26,16 @@ local config = {
 
 
 local input_dim = config.input_dim
-local start_symbol = torch.zeros(input_dim)
+local start_symbol = torch.CudaTensor(input_dim):fill(0)
+print(start_symbol:type())
+-- start_symbol = start_symbol:cuda()
 -- test = test.cuda()
 -- test = test:cuda()
 -- start_symbol = test
-print("done")
 start_symbol[1] = 1
 local end_symbol = torch.zeros(input_dim)
 end_symbol = end_symbol:cuda()
+
 function generate_repeat_number(min, max)
     local k = (torch.rand(1)*max):ceil()
     return k[1]
@@ -65,25 +67,19 @@ function forward(model, seq, print_flag,k, targets)
   local loss = 0
 
   -- present start symbol
-  print("STart ka type")
-  print(start_symbol:type())
   model:forward(start_symbol:cuda())
-  print("after")
 
-  -- present inputs
-  -- if print_flag then print('write head max') end
   for j = 1, len do
     model:forward(seq[j])
     -- if print_flag then print_write_max(model) end
   end
-
   -- present end symbol
   model:forward(end_symbol)
 
   -- present targets
-  local zeros = torch.zeros(input_dim)
+  local zeros = torch.CudaTensor(input_dim):fill(0)
 
-  local outputs = torch.Tensor((k*len)+1, input_dim)
+  local outputs = torch.CudaTensor((k*len)+1, input_dim)
   local criteria = {}
   --if print_flag then print('read head max') end
 
@@ -98,8 +94,9 @@ end
 
 function backward(model, seq, outputs, criteria, k, targets)
   local len = seq:size(1)
-  local zeros = torch.zeros(input_dim)
+  local zeros = torch.CudaTensor(input_dim):fill(0)
   for j = k*len+1, 1, -1 do
+    criteria[j] = criteria[j]:cuda()
     model:backward(
       zeros,
       criteria[j]
@@ -202,4 +199,4 @@ for iter = 1, num_iters do
   ntm.rmsprop(feval, params, rmsprop_state)
 end
 
-torch.save("repeat_copy.pkl", model,'ascii');
+torch.save("repeat_copy_gru.pkl", model,'ascii');
