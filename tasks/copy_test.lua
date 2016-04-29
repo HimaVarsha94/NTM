@@ -4,8 +4,9 @@ require('optim')
 require('sys')
 require 'gnuplot'
 
-
-obj = torch.load('copy.pkl')
+print("Before")
+obj = torch.load('copy_gru.pkl')
+print("Here")
 local input_dim = obj.input_dim
 local len = 8
 local min_len = 20

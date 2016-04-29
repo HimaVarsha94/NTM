@@ -119,7 +119,7 @@ grads = grads:cuda()
 
 local num_iters = 5000
 local start = sys.clock()
-local print_interval = 50
+local print_interval = 1
 local min_len = 1
 local max_len = 10
 
