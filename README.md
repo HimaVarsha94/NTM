@@ -31,9 +31,13 @@ luarocks install nngraph
 The base directory contains the implementation of NTM with LSTM and GRU controllers. The layers directory contains the implementation of some modules which is used in the NTM.
 
 The task directory contains the data, train and test code, and pre-trained models and results. There are three tasks namely Copy, Repeat-Copy and Recall each in their respective directory. For every task there are four directories named
+
 1. dataset (contains the script to generate data for test and train and already generated data files)
+
 2. src (contains script for training and testing)
+
 3. pre-trained-models (contains trained models in pkl files)
+
 4. results (contains results for train and test)
 
 To generate data go to dataset and type:
