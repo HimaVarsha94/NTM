@@ -21,6 +21,7 @@ end
 local pklFile = pklDirectory..pklFilename
 print(pklFile)
 
+
 obj = torch.load(pklFile)
 
 --print("Here")
@@ -76,7 +77,9 @@ local losses = {}
 local outputs = {}
 local targets = {}
 
+
 for i = 1, #inputs do
+
     -- local seq = generate_sequence(len, (input_dim) - 2)
     local seq = inputs[i]
     targets[i] = seq
