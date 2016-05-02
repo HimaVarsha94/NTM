@@ -42,17 +42,17 @@ The task directory contains the data, train and test code, and pre-trained model
 
 To generate data go to dataset and type:
 ```
-th <task>_gen_dataset.lua
+$ th <task>_gen_dataset.lua
 ```
 It will generate two data set one for train and one for test.
 
 To train go to src/ and type:
 ```
-th <task>_cuda.lua
+$ th <task>_cuda.lua
 ```
 To test go to src/ and type:
 ```
-th <task>_test.lua
+$ th <task>_test.lua
 ```
 
 The pre-trained/ directory contains pre-trained pkl models which can be used for testing.
@@ -65,21 +65,22 @@ There are multiple tasks which this repo implements. The tasks implemented are:
 2. Repeat Copy
 3. Associative Recall
 
-To implement a particular task, for example repeat_copy task
+To check a particular task, for example Recall
 1. Generate dataset
 ```
-cd tasks
-th tasks/repeat_copy_gen_dataset.lua
+$ cd tasks/Recall
+$ th recall_gen_dataset.lua
 ```
 2. Train the model
 ```
-th tasks/repeat_copy.lua
+$ cd ../src
+$ th recal_cuda.lua
 ```
-Then choose the architecture to be used by entering 1,2,3 or 4.
+The program will ask the architecture. Give 1 for LSTM and 2 for GRU
 
 3. Test our model
 ```
-th tasks/repeat_copy_test.lua
+$ th recall_test.lua
 ```
 
 ## References:
