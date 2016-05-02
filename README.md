@@ -71,7 +71,7 @@ To check a particular task, for example Recall
 $ cd tasks/Recall
 $ th recall_gen_dataset.lua
 ```
-2. Train the model
+2. Train the model  
 ```
 $ cd ../src
 $ th recal_cuda.lua
