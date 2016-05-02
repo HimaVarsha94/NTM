@@ -21,9 +21,9 @@ include('layers/SmoothCosineSimilarity.lua')
 include('layers/ScalarMulTable.lua')
 include('layers/ScalarDivTable.lua')
 if option == "1" then
-    include('ntm_lstm.lua')
+    include('ntm_lstm_cuda.lua')
 elseif option == "2" then
-  include('ntm_gru.lua')
+  include('ntm_gru_cuda.lua')
 end
 
 function share_params(cell, src, ...)
