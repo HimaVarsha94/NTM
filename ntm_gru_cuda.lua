@@ -46,39 +46,39 @@ end
 function NTM:init_grad_inputs()
   local ww_gradInput
   if self.write_heads == 1 then
-    ww_gradInput = torch.zeros(self.mem_rows)
+    ww_gradInput = torch.zeros(self.mem_rows):cuda()
   else
     ww_gradInput = {}
     for i = 1, self.write_heads do
-      ww_gradInput[i] = torch.zeros(self.mem_rows)
+      ww_gradInput[i] = torch.zeros(self.mem_rows):cuda()
     end
   end
 
   local wr_gradInput, r_gradInput
   if self.read_heads == 1 then
-    wr_gradInput = torch.zeros(self.mem_rows)
-    r_gradInput = torch.zeros(self.mem_cols)
+    wr_gradInput = torch.zeros(self.mem_rows):cuda()
+    r_gradInput = torch.zeros(self.mem_cols):cuda()
   else
     wr_gradInput, r_gradInput = {}, {}
     for i = 1, self.read_heads do
-      wr_gradInput[i] = torch.zeros(self.mem_rows)
-      r_gradInput[i] = torch.zeros(self.mem_cols)
+      wr_gradInput[i] = torch.zeros(self.mem_rows):cuda()
+      r_gradInput[i] = torch.zeros(self.mem_cols):cuda()
     end
   end
 
   local m_gradInput
   if self.cont_layers == 1 then
-    m_gradInput = torch.zeros(self.cont_dim)
+    m_gradInput = torch.zeros(self.cont_dim):cuda()
   else
     m_gradInput= {}
     for i = 1, self.cont_layers do
-      m_gradInput[i] = torch.zeros(self.cont_dim)
+      m_gradInput[i] = torch.zeros(self.cont_dim):cuda()
     end
   end
 
   self.gradInput = {
-    torch.zeros(self.input_dim), -- input
-    torch.zeros(self.mem_rows, self.mem_cols), -- M
+    torch.zeros(self.input_dim):cuda(), -- input
+    torch.zeros(self.mem_rows, self.mem_cols):cuda(), -- M
     wr_gradInput,
     ww_gradInput,
     r_gradInput,
@@ -353,7 +353,7 @@ function NTM:forward(input)
   if self.depth == 1 then
     prev_outputs = self.init_module:forward(torch.Tensor{0}:cuda())
   else
-    prev_outputs = self.cells[self.depth - 1].output
+    prev_outputs = (self.cells[self.depth - 1].output)
   end
   -- prev_outputs = prev_outputs:cuda()
 
@@ -393,7 +393,7 @@ function NTM:backward(input, grad_output)
   self.gradInput = cell:backward(inputs, grad_outputs)
   self.depth = self.depth - 1
   if self.depth == 0 then
-    self.init_module:backward(torch.Tensor{0}, self.gradInput)
+    self.init_module:backward(torch.Tensor{0}:cuda(), self.gradInput)
     for i = 1, #self.gradInput do
       local gradInput = self.gradInput[i]
       if type(gradInput) == 'table' then
