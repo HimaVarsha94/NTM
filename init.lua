@@ -5,7 +5,7 @@ require('cunn')
 require('cutorch')
 ntm = {}
 printf = utils.printf
-local option = "1"
+option = "1"
 repeat
    io.write("Select a Variant of NTM to run:  1. NTM_LSTM_cuda 2. NTM_GRU_cuda ")
    io.flush()

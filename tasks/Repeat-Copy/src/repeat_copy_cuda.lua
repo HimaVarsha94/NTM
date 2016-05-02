@@ -1,9 +1,27 @@
-require('../../')
-require('../util')
+require('../../../')
+require('../../util')
 require('optim')
 require('sys')
 
 torch.manualSeed(0)
+
+local pklDirectory = "../pre-trained-models/"
+
+local dataDirectory = "../dataset/"
+
+local pklFilename = ""
+
+local dataFilename = dataDirectory.."repeat_copy_trainData.dat"
+
+if option == "1" then
+  pklFilename = "repeat_copy_lstm.pkl"
+elseif option == "2" then
+  pklFilename = "repeat_copy_gru.pkl"
+end
+
+local pklFile = pklDirectory..pklFilename
+print(pklFile)
+
 
 -- NTM config
 local config = {
@@ -104,7 +122,7 @@ grads = grads:cuda()
 
 local num_iters = 5000
 local start = sys.clock()
-local print_interval = 1
+local print_interval = 50
 local min_len = 1
 local max_len = 10
 
@@ -125,7 +143,7 @@ local rmsprop_state = {
 -- local adagrad_state = {
 --   learningRate = 1e-3
 -- }
-local train = torch.load('repeat_copy_trainData.dat', 'ascii')
+local train = torch.load(dataFilename, 'ascii')
 local input_seqs = train[1]
 local ks = train[2]
 local targets_table = train[3]
@@ -184,4 +202,4 @@ for iter = 1, num_iters do
   ntm.rmsprop(feval, params, rmsprop_state)
 end
 
-torch.save("repeat_copy_gru.pkl", model,'ascii');
+torch.save(pklFile, model,'ascii');

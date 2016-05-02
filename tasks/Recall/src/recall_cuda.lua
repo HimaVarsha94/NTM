@@ -1,9 +1,26 @@
-require('../../')
-require('../util')
+require('../../../')
+require('../../util')
+require('optim')
 require('sys')
 
 torch.manualSeed(0)
 
+local pklDirectory = "../pre-trained-models/"
+
+local dataDirectory = "../dataset/"
+
+local pklFilename = ""
+
+local dataFilename = dataDirectory.."recall_trainData.dat"
+
+if option == "1" then
+  pklFilename = "recall_lstm.pkl"
+elseif option == "2" then
+  pklFilename = "recall_gru.pkl"
+end
+
+local pklFile = pklDirectory..pklFilename
+print(pklFile)
 local config = {
   input_dim = 8,
   output_dim = 8,
@@ -12,6 +29,7 @@ local config = {
   cont_dim = 100
 }
 
+
 local input_dim = config.input_dim
 
 -- delimiter symbol and query symbol
@@ -19,6 +37,8 @@ local delim_symbol = torch.CudaTensor(input_dim):fill(0)
 delim_symbol[1] = 1
 local query_symbol = torch.CudaTensor(input_dim):fill(0)
 query_symbol[2] = 1
+
+
 
 function forward(model, items, num_queries)
   local num_items = #items
@@ -99,11 +119,14 @@ function backward(model, items, query_indices, outputs, criteria)
   end
 end
 
+
 local model = ntm.NTM(config):cuda()
+
+
 local params, grads = model:getParameters()
 params = params:cuda()
 grads = grads:cuda()
-local num_iters = 15000
+local num_iters = 50000
 local min_len = 2
 local max_len = 6
 local item_len = 3
@@ -122,7 +145,7 @@ local rmsprop_state = {
   decay = 0.95
 }
 
-train = torch.load("recall_trainData.dat", 'ascii')
+train = torch.load(dataFilename, 'ascii')
 inputs = train[1]
 local losses = {}
 -- train
@@ -157,15 +180,45 @@ for iter = 1, num_iters do
     return loss, grads
   end
     if iter == 5000 then
-        torch.save('recall_gru_5k.pkl', model)
+      if option == "1" then
+
+        torch.save(pklDirectory..'recall_lstm_5k.pkl', model)
+      elseif option == "2" then
+        torch.save(pklDirectory..'recall_gru_5k.pkl', model)
+      end
     end
     if iter == 10000 then
-        torch.save('recall_gru_10k.pkl', model)
+      if option == "1" then
+        torch.save(pklDirectory..'recall_lstm_10k.pkl', model)
+      elseif option == "2" then
+        torch.save(pklDirectory..'recall_gru_10k.pkl', model)
+      end
     end
     if iter == 15000 then
-        torch.save('recall_gru_15k.pkl', model)
+      if option == "1" then
+        torch.save(pklDirectory..'recall_lstm_15k.pkl', model)
+      elseif option == "2" then
+        torch.save(pklDirectory..'recall_gru_15k.pkl', model)
+      end
+    end
+
+    if iter == 20000 then
+    	if option == "1" then
+        torch.save(pklDirectory..'recall_lstm_20k.pkl', model)
+      elseif option == "2" then
+        torch.save(pklDirectory..'recall_gru_20k.pkl', model)
+      end
+    end
+    if iter == 40000 then
+    	if option == "1" then
+        torch.save(pklDirectory..'recall_lstm_40k.pkl', model)
+      elseif option == "2" then
+        torch.save(pklDirectory..'recall_gru_40k.pkl', model)
+      end
     end
 
   ntm.rmsprop(feval, params, rmsprop_state)
-  torch.save('recall_trainLoss.dat', losses, 'ascii')
 end
+-- torch.save('recall_lstm_trainLoss.dat', losses, 'ascii')
+
+torch.save(pklFile, model)

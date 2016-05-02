@@ -1,9 +1,27 @@
-require('../../')
-require('../util')
+require('../../../')
+require('../../util')
 require('optim')
 require('sys')
 
 torch.manualSeed(0)
+-- print(option)
+
+local pklDirectory = "../pre-trained-models/"
+
+local pklFilename = ""
+
+local dataDirectory = "../dataset/"
+
+local dataFilename = dataDirectory.."copy_trainData.dat"
+
+if option == "1" then
+  pklFilename = "copy_lstm.pkl"
+elseif option == "2" then
+  pklFilename = "copy_gru.pkl"
+end
+
+local pklFile = pklDirectory..pklFilename
+print(pklFile)
 
 -- NTM config
 local config = {
@@ -80,9 +98,9 @@ local params, grads = model:getParameters()
 params = params:cuda()
 grads = grads:cuda()
 
-local num_iters = 10
+local num_iters = 10000
 local start = sys.clock()
-local print_interval = 25
+local print_interval = 50
 local min_len = 1
 local max_len = 20
 
@@ -104,40 +122,45 @@ local rmsprop_state = {
 --   learningRate = 1e-3
 -- }
 
+train = torch.load(dataFilename, 'ascii')
+
+inputs = train[1]
+
+
 -- train
 for iter = 1, num_iters do
   local print_flag = (iter % print_interval == 0)
   local feval = function(x)
     if print_flag then
-      print(string.rep('-', 80))
+     --  print(string.rep('-', 80))
       print('iter = ' .. iter)
-      print('learn rate = ' .. rmsprop_state.learningRate)
-      print('momentum = ' .. rmsprop_state.momentum)
-      print('decay = ' .. rmsprop_state.decay)
-      printf('t = %.1fs\n', sys.clock() - start)
+     --  print('learn rate = ' .. rmsprop_state.learningRate)
+      -- print('momentum = ' .. rmsprop_state.momentum)
+      -- print('decay = ' .. rmsprop_state.decay)
+      -- printf('t = %.1fs\n', sys.clock() - start)
     end
 
     local loss = 0
     grads:zero()
 
-    local len = math.floor(torch.random(min_len, max_len))
-    local seq = generate_sequence(len, input_dim - 2)
+    
+    local seq = inputs[iter]
     seq = seq:cuda()
     local outputs, criteria, sample_loss = forward(model, seq, print_flag)
     loss = loss + sample_loss
     backward(model, seq, outputs, criteria)
     if print_flag then
-      print("target:")
-      print(seq)
-      print("output:")
-      print(outputs)
+      -- print("target:")
+      -- print(seq)
+      -- print("output:")
+      -- print(outputs)
     end
 
     -- clip gradients
     grads:clamp(-10, 10)
     if print_flag then
-      print('max grad = ' .. grads:max())
-      print('min grad = ' .. grads:min())
+      -- print('max grad = ' .. grads:max())
+      -- print('min grad = ' .. grads:min())
       print('loss = ' .. loss)
     end
     return loss, grads
@@ -146,5 +169,4 @@ for iter = 1, num_iters do
   --optim.adagrad(feval, params, adagrad_state)
   ntm.rmsprop(feval, params, rmsprop_state)
 end
-
-torch.save("copy.pkl", model);
+torch.save(pklFile, model);
