@@ -20,19 +20,6 @@ delim_symbol[1] = 1
 local query_symbol = torch.CudaTensor(input_dim):fill(0)
 query_symbol[2] = 1
 
-function generate_items(num_items, item_len)
-  local items = {}
-  -- for i = 1, num_items do
-  --   local item = torch.rand(item_len, input_dim):round()
-  --   for j = 1, item_len do
-  --     item[{j, {1, 2}}]:zero()
-  --   end
-  --   table.insert(items, item)
-  -- end
-
-  return items
-end
-
 function forward(model, items, num_queries)
   local num_items = #items
   local item_len = items[1]:size(1)
