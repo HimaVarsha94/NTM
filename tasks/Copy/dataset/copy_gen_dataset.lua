@@ -1,5 +1,5 @@
-require('../../')
-require('../util')
+require('../../../')
+require('../../util')
 require('optim')
 require('sys')
 
@@ -45,7 +45,7 @@ function gen_train(train_config)
         train_data[i] = seq
         train_targets[i] = seq
     end
-    train = {train_data, train_targets}
+    train = {train_data}
     return train
 end
 
@@ -63,12 +63,12 @@ function gen_train(test_config)
         test_data[i] = seq
         test_targets[i] = seq
     end
-    test = {test_data,test_targets}
+    test = {test_data}
     return test
 end
 
 local train = gen_train(train_config)
 local test  = gen_train(test_config)
 
-torch.save('copy_train.dat',train, 'ascii')
-torch.save('copy_test.dat',test, 'ascii')
+torch.save('copy_trainData.dat',train, 'ascii')
+torch.save('copy_testData.dat',test, 'ascii')

@@ -1,28 +1,46 @@
-require('../../')
-require('../util')
+require('../../../')
+require('../../util')
 require('optim')
 require('sys')
-require 'gnuplot'
+-- require 'gnuplot'
 
-print("Before")
-obj = torch.load('copy_gru.pkl')
-print("Here")
+local pklDirectory = "../pre-trained-models/"
+
+local pklFilename = ""
+
+local dataDirectory = "../dataset/"
+
+local dataFilename = dataDirectory.."copy_testData.dat"
+
+if option == "1" then
+  pklFilename = "copy_lstm.pkl"
+elseif option == "2" then
+  pklFilename = "copy_gru.pkl"
+end
+
+local pklFile = pklDirectory..pklFilename
+print(pklFile)
+
+obj = torch.load(pklFile)
+
+--print("Here")
+
 local input_dim = obj.input_dim
-local len = 8
-local min_len = 20
-local max_len = 120
+-- local len = 8
+-- local min_len = 20
+-- local max_len = 120
 local start_symbol = torch.zeros(input_dim)
 start_symbol[1] = 1
 local end_symbol = torch.zeros(input_dim)
 end_symbol[2] = 1
 
-function generate_sequence(len, bits)
-  local seq = torch.zeros(len, bits + 2)
-  for i = 1, len do
-    seq[{i, {3, bits + 2}}] = torch.rand(bits):round()
-  end
-  return seq
-end
+-- function generate_sequence(len, bits)
+--   local seq = torch.zeros(len, bits + 2)
+--   for i = 1, len do
+--     seq[{i, {3, bits + 2}}] = torch.rand(bits):round()
+--   end
+--   return seq
+-- end
 
 function forward(model, seq, print_flag)
   local len = seq:size(1)
@@ -51,17 +69,23 @@ function forward(model, seq, print_flag)
   return outputs, criteria, loss
 end
 
-local inputs = {}
+test = torch.load(dataFilename,'ascii')
+
+local inputs = test[1]
 local losses = {}
 local outputs = {}
 local targets = {}
 
-for i = 1, 100 do
-    local seq = generate_sequence(len, (input_dim) - 2)
-    inputs[i] = seq
+for i = 1, #inputs do
+    -- local seq = generate_sequence(len, (input_dim) - 2)
+    local seq = inputs[i]
     targets[i] = seq
     outputs[i], criteria, losses[i] = forward(obj, seq,0)
-    print(losses[i])
+    print("iter = "..i)
+    print("loss = "..losses[i])
 end
 
-gnuplot.plot({torch.range(1,#losses),torch.Tensor(losses),'-'})
+local out = {outputs,targets}
+torch.save("../results/copy_test_out.dat", out,'ascii')
+
+-- gnuplot.plot({torch.range(1,#losses),torch.Tensor(losses),'-'})

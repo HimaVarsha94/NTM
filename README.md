@@ -17,8 +17,6 @@ libraries:
 
 [nngraph](https://github.com/torch/nngraph)
 
-If you are using cuda code then the following libraries as well:
-
 [cutorch](https://github.com/torch/cutorch)
 
 [cunn](https://github.com/torch/cunn)
@@ -28,6 +26,33 @@ All the above dependencies can be installed using [luarocks](http://luarocks.org
 ```
 luarocks install nngraph
 ```
+
+## Project Structure
+The base directory contains the implementation of NTM with LSTM and GRU controllers. The layers directory contains the implementation of some modules which is used in the NTM.
+
+The task directory contains the data, train and test code, and pre-trained models and results. There are three tasks namely Copy, Repeat-Copy and Recall each in their respective directory. For every task there are four directories named
+1. dataset (contains the script to generate data for test and train and already generated data files)
+2. src (contains script for training and testing)
+3. pre-trained-models (contains trained models in pkl files)
+4. results (contains results for train and test)
+
+To generate data go to dataset and type:
+```
+th <task>_gen_dataset.lua
+```
+It will generate two data set one for train and one for test.
+
+To train go to src/ and type:
+```
+th <task>_cuda.lua
+```
+To test go to src/ and type:
+```
+th <task>_test.lua
+```
+
+The pre-trained/ directory contains pre-trained pkl models which can be used for testing.
+
 
 ## Usage
 

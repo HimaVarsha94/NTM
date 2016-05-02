@@ -1,5 +1,4 @@
-require('../../')
-require('../util')
+require('../../../')
 require('optim')
 require('sys')
 
@@ -10,7 +9,7 @@ local train_config = {
   min_len = 2,
   max_len = 6,
   item_len = 3,
-  dataset_size = 15000
+  dataset_size = 50000
 }
 
 local test_config = {

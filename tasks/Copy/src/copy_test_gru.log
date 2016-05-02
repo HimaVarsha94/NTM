@@ -1,0 +1,3 @@
+Select a Variant of NTM to run:  1. NTM_LSTM_cuda 2. NTM_GRU_cuda ../pre-trained-models/copy_gru.pkl	
+iter = 1	
+loss = 0.33275548878776	

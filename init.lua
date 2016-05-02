@@ -5,7 +5,7 @@ require('cunn')
 require('cutorch')
 ntm = {}
 printf = utils.printf
-local option = "1"
+option = "1"
 repeat
    io.write("Select a Variant of NTM to run:  1. NTM_LSTM_cuda 2. NTM_GRU_cuda ")
    io.flush()
@@ -21,9 +21,9 @@ include('layers/SmoothCosineSimilarity.lua')
 include('layers/ScalarMulTable.lua')
 include('layers/ScalarDivTable.lua')
 if option == "1" then
-    include('ntm_lstm_cuda.lua')
+    include('ntm_lstm.lua')
 elseif option == "2" then
-  include('ntm_gru_cuda.lua')
+  include('ntm_gru.lua')
 end
 
 function share_params(cell, src, ...)

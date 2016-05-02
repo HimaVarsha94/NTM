@@ -1,0 +1,38 @@
+Select a Variant of NTM to run:  1. NTM_LSTM_cuda 2. NTM_GRU_cuda ../pre-trained-models/repeat_copy_lstm.pkl	
+================================================================================	
+NTM copy task	
+training up to 5000 iteration(s)	
+min sequence length = 1	
+max sequence length = 10	
+================================================================================	
+num params: 69594	
+iter = 50	
+loss = 347.42130403686	
+iter = 100	
+loss = 380.96974090859	
+iter = 150	
+loss = 62.640483863652	
+iter = 200	
+loss = 360.5963466391	
+iter = 250	
+loss = 145.80408021808	
+iter = 300	
+loss = 676.92648240738	
+iter = 350	
+loss = 407.97450044472	
+iter = 400	
+loss = 552.77570917644	
+iter = 450	
+loss = 229.0741924867	
+iter = 500	
+loss = 54.659536419436	
+iter = 550	
+loss = 63.574383096769	
+iter = 600	
+loss = 35.881163801998	
+iter = 650	
+loss = 591.31168287061	
+iter = 700	
+loss = 150.74061663635	
+iter = 750	
+loss = 311.7642041333	

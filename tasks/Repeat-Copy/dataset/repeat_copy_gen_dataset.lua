@@ -1,5 +1,4 @@
-require('../../')
-require('../util')
+require('../../../')
 require('optim')
 require('sys')
 

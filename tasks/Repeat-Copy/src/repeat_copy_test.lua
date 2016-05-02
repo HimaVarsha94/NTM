@@ -1,80 +1,74 @@
-require('../../')
-require('../util')
+require('../../../')
+require('../../util')
 require('optim')
 require('sys')
+-- require 'gnuplot'
 
-torch.manualSeed(0)
-obj = torch.load('repeat_copy.pkl','ascii')
+local pklDirectory = "../pre-trained-models/"
 
-local min_len = 1
-local max_len = 20
+local pklFilename = ""
+
+local dataDirectory = "../dataset/"
+
+local dataFilename = dataDirectory.."repeat_copy_testData.dat"
+
+if option == "1" then
+  pklFilename = "repeat_copy_lstm.pkl"
+elseif option == "2" then
+  pklFilename = "repeat_copy_gru.pkl"
+end
+
+local pklFile = pklDirectory..pklFilename
+print(pklFile)
+
+obj = torch.load(pklFile,'ascii')
+
+-- local min_len = 1
+-- local max_len = 20
 local num_iters = 100
 -- print(input_dim)
 local input_dim = obj.input_dim
 
-local start_symbol = torch.zeros(input_dim)
+local start_symbol = torch.zeros(input_dim):cuda()
 start_symbol[1] = 1
-local end_symbol = torch.zeros(input_dim)
+local end_symbol = torch.zeros(input_dim):cuda()
 
-function generate_repeat_number(min, max)
-    local k = (torch.rand(1)*max):ceil()
-    return k[1]
-end
 
-function make_target(seq,k)
-    local rows = seq:size()[1]
-    local columns = seq:size()[2]
-    local target = torch.zeros((k*rows)+1, columns)
-    for i=1, rows*k,rows do
-        target[{{i,i+rows-1},{}}] = seq
-    end
-    local end_limiter = torch.zeros(columns)
-    end_limiter[2] = 1
-    target[(k*rows)+1] = end_limiter
-    return  target
-end
 
-function generate_sequence(len, bits)
-  local seq = torch.zeros(len, bits + 2)
-  for i = 1, len do
-    seq[{i, {3, bits + 2}}] = torch.rand(bits):round()
-  end
-  return seq
-end
 
 function forward(model, seq,k, targets)
   local len = seq:size(1)
   local loss = 0
 
   -- present start symbol
-  model:forward(start_symbol)
+  model:forward(start_symbol:cuda())
 
   -- present inputs
   for j = 1, len do
-    model:forward(seq[j])
+    model:forward(seq[j]:cuda())
   end
 
   -- present end symbol
-  model:forward(end_symbol)
+  model:forward(end_symbol:cuda())
 
   -- present targets
-  local zeros = torch.zeros(input_dim)
+  local zeros = torch.zeros(input_dim):cuda()
 
-  local outputs = torch.Tensor((k*len)+1, input_dim)
+  local outputs = torch.Tensor((k*len)+1, input_dim):cuda()
   local criteria = {}
   if print_flag then print('read head max') end
 
   for j = 1, k*len + 1 do
     criteria[j] = nn.BCECriterion()
     outputs[j] = model:forward(zeros)
-    loss = loss + criteria[j]:forward(outputs[j], targets[j]) * input_dim
+    loss = loss + criteria[j]:forward(outputs[j], targets[j]:cuda()) * input_dim
   end
   return outputs, criteria, loss
 end
 
 
 -- test
-local test = torch.load('repeat_copy_testData.dat', 'ascii')
+local test = torch.load(dataFilename, 'ascii')
 local input_seqs = test[1]
 local ks = test[2]
 local targets_table = test[3]
@@ -87,18 +81,21 @@ local losses = {}
 -- local targets = {}
 local outputs = {}
 -- local criteria
-for i = 1, num_iters do
+for i = 1, #input_seqs do
 
     -- local len = math.floor(torch.random(min_len, max_len))
-    local seq = input_seqs[i]
+    local seq = input_seqs[i]:cuda()
     local k = ks[i]
     -- inputs[i] = seq
     end_symbol[2] = k
-    local targets = targets_table[i]
+    local targets = targets_table[i]:cuda()
     outputs[i], criteria, losses[i] = forward(obj, seq,k, targets)
+    print('iter = ' .. i)
+    print('loss = ' .. losses[i])
+
 
     -- return loss, grads
 
 end
-local out = {num_iters,output,losses}
-torch.save('repeat_copy_out.dat', out, 'ascii')
+local out = {output,targets_table}
+torch.save('../results/repeat_copy_out.dat', out, 'ascii')
